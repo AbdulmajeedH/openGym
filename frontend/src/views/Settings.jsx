@@ -1,3 +1,4 @@
+import { LOCAL_ONLY } from '../lib/local-only.js'
 import { useEffect, useRef, useState, forwardRef, useSyncExternalStore } from 'react'
 import { useNavigate, useParams, useLocation, Navigate } from 'react-router-dom'
 import { useStore, DEF, hasData } from '../store/useStore.js'
@@ -764,7 +765,7 @@ export default function Settings({ page = null, find = null, via = null }) {
         {/* The bar at the top that says the app is offline, kept local, or not synced (#369, #330).
             Here and not under Server & sync, which a phone kept local never shows. Switching it on
             also brings back the no-server line its × hid (#454). */}
-        {!DEMO && <Row icon="cloud" iconTint="var(--blue)" title={t('Show connection status')}
+        {!DEMO && !LOCAL_ONLY && <Row icon="cloud" iconTint="var(--blue)" title={t('Show connection status')}
           subtitle={t('Off: the bar at the top is hidden. A dot on Home still warns when syncing is stuck.')}>
           <Switch checked={S.connStatus !== false} onChange={v => update(s => { s.connStatus = v; if (v) s.connLocal = true })} />
         </Row>}
@@ -850,8 +851,12 @@ export default function Settings({ page = null, find = null, via = null }) {
       </ServerSyncSection>}
 
       {/* account (demo and mobile builds have nothing to sign in to) */}
-      {!(MOBILE && user) && <Section title={MOBILE ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
-        {MOBILE ? <>
+      {!(MOBILE && user) && <Section title={(MOBILE || LOCAL_ONLY) ? t('Your data') : DEMO ? t('Demo') : t('Account')}>
+        {LOCAL_ONLY ? <>
+          <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud. Back it up anytime in Data & backup.')} />
+          <Row icon="download" iconTint="var(--blue)" title={t('Data & backup')} accessory="chevron" onClick={() => nav('/settings/data')} />
+          <Row icon="info" iconTint="var(--grey)" title="Source code · AGPL-3.0" accessory="chevron" onClick={() => window.open('source.zip', '_blank', 'noopener')} />
+        </> : MOBILE ? <>
           <Row icon="lock" iconTint="var(--acc)" title={t('All data stays on this phone')} subtitle={t('No account, no cloud. Back it up anytime in Data & backup.')} />
           <Row icon="cloud" iconTint="var(--indigo)" title={t('Connect to my server')} subtitle={t('Sync this device to your own self-hosted openGym instead.')} accessory="chevron"
             onClick={connectServer} />
@@ -892,7 +897,7 @@ export default function Settings({ page = null, find = null, via = null }) {
       </Section>}
       {/* The connection banner already says this to a guest; the line is for when it is switched
           off, or its × hid it (#454). */}
-      {!user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}
+      {!LOCAL_ONLY && !user && !DEMO && !MOBILE && !(showsConnection(S) && showsLocalLine(S)) && <p className="sect-f" style={{ marginTop: -18, marginBottom: 22 }}>{t('Guest mode: your data lives only in this browser.')}</p>}
     </>,
   }
 
@@ -927,7 +932,7 @@ function SettingsRoot({ ctx, preview, open, user, sync, home, go }) {
   const set = v => { lastQuery = { q: v, key }; setQ(v) }
   const hits = q.trim() ? searchSettings(q, ctx) : null
   // The account card: who this is, and the one line that matters about it.
-  const acct = DEMO ? { title: t('Demo'), sub: t('Example data, only in this browser.') }
+  const acct = LOCAL_ONLY ? { title: t('This phone'), sub: t('All data stays on this phone') } : DEMO ? { title: t('Demo'), sub: t('Example data, only in this browser.') }
     : user ? {
       title: user.name || t('Account'),
       sub: sync && sync.status && sync.status !== 'ok' ? t('Sync needs a look') : MOBILE ? t('Synced with your server') : t('Account, devices and sync'),

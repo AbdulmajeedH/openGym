@@ -1,3 +1,4 @@
+import { LOCAL_ONLY, LOCAL_CONFIG } from '../lib/local-only.js'
 import { create } from 'zustand'
 import { api, setRemoteAuth } from '../lib/api.js'
 import { localTZ } from '../lib/format.js'
@@ -1835,6 +1836,14 @@ export const useStore = create((set, get) => {
 
     // Boot: ask the server who we are, then pull.
     async boot() {
+      if (LOCAL_ONLY) {
+        // Never reset the existing training history on reload or deployment.
+        set({ user: null, config: LOCAL_CONFIG })
+        rememberDefaultLang(LOCAL_CONFIG)
+        get().setGuest(true)
+        finishBoot()
+        return
+      }
       // Mobile build: no backend by default — restore from the file mirror (the durable copy;
       // localStorage may have been evicted since the last run) and go straight in. Unless this
       // device was paired to a server ("connect to my server" mode, lib/remote.js), in which

@@ -1,0 +1,23 @@
+// @vitest-environment happy-dom
+import { expect, it, vi } from 'vitest'
+vi.stubEnv('VITE_LOCAL_ONLY', '1')
+localStorage.clear()
+const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network forbidden'))
+const { useStore } = await import('./useStore.js')
+const { api } = await import('../lib/api.js')
+it('starts empty, preserves a weigh-in across a fresh store load, and never calls the server', async () => {
+  await useStore.getState().boot()
+  expect(useStore.getState().isGuest()).toBe(true)
+  expect(useStore.getState().S.workouts).toEqual([])
+  expect(useStore.getState().S.bodyweight).toEqual([])
+  useStore.getState().update(s => { s.bodyweight = [{ d: '2026-10-11', w: 60 }] })
+  expect(JSON.parse(localStorage.getItem('gym_state_v1')).bodyweight[0].w).toBe(60)
+  vi.resetModules()
+  const { useStore: fresh } = await import('./useStore.js')
+  await fresh.getState().boot()
+  expect(fresh.getState().S.bodyweight[0].w).toBe(60)
+  expect(fresh.getState().user).toBeNull()
+  expect(fresh.getState().config.default_lang).toBe('ar')
+  await expect(api('/api/data', {method:'PUT',body:'{}'})).rejects.toMatchObject({code:'local-only'})
+  expect(fetchSpy).not.toHaveBeenCalled()
+})
