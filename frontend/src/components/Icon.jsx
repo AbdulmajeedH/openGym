@@ -180,6 +180,9 @@ const P = {
   // a passkey (key is the password, lock is "stays on this device")
   fingerprint: <><path d="M5.2 9.2a7.8 7.8 0 0 1 13.6 0" /><path d="M4.8 14.4v-1.2a7.2 7.2 0 0 1 .4-2.4M18.8 9.2a7.6 7.6 0 0 1 .4 2.6v3" /><path d="M8.6 20a9.6 9.6 0 0 1-1.2-4.6v-2.2a4.6 4.6 0 0 1 9.2 0v1.6" /><path d="M12 13v2.6a9.4 9.4 0 0 0 1.6 5" /><path d="M16.6 18.2v.6c0 .6.1 1.2.2 1.6" /></>,
   // how a message sounds (the nudge tone)
+  // fork and spoon, for the food tab
+  food: <path d="M7.2 3.5v5.6a2.3 2.3 0 0 0 4.6 0V3.5M9.5 3.5v17M16.4 20.5v-8.3M16.4 12.2c-1.8 0-3-2-3-4.5S14.6 3.5 16.4 3.5s3 1.7 3 4.2-1.2 4.5-3 4.5Z" />,
+  cart: <><path d="M3.5 4.4h2.2l2.2 10.3a1.6 1.6 0 0 0 1.6 1.3h7.4a1.6 1.6 0 0 0 1.6-1.2l1.6-6.4H6.6" /><circle cx="10.2" cy="19.6" r="1.2" /><circle cx="16.8" cy="19.6" r="1.2" /></>,
   chat: <path d="M5.6 4.8h12.8a2.2 2.2 0 0 1 2.2 2.2v8a2.2 2.2 0 0 1-2.2 2.2H11l-4.4 3.4v-3.4h-1a2.2 2.2 0 0 1-2.2-2.2V7a2.2 2.2 0 0 1 2.2-2.2Z" />,
 }
 

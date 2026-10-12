@@ -1,0 +1,114 @@
+/* Nutrition screens (views/Nutrition.jsx, views/NutritionPlan.jsx, components/NutritionSheets.jsx).
+   Built from the app's own tokens so both themes and every accent follow along. */
+
+.nt .hdr-actions .iconbtn{font-size:20px}
+
+/* ---- date bar ---- */
+.nt-datebar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:-6px 0 12px}
+.nt-date{flex:1;padding:9px 12px;border-radius:99px;background:var(--surface);font-size:15px;font-weight:600;color:var(--label);text-align:center}
+.nt-date:active{background:var(--surface-2)}
+
+/* ---- summary ---- */
+.nt-big{font-size:34px;font-weight:700;letter-spacing:-.028em;line-height:1.08;font-variant-numeric:tabular-nums}
+.nt-big span{font-size:15px;font-weight:500;color:var(--label-2);letter-spacing:0}
+.nt-eaten{text-align:end;font-size:15px;font-variant-numeric:tabular-nums}
+.nt-badge{display:inline-flex;align-items:center;gap:4px;margin-top:4px;padding:3px 8px;border-radius:99px;background:var(--acc-soft);color:var(--acc);font-size:12px;font-weight:600}
+.nt-badge .icn{font-size:13px}
+.nt-bar{height:6px;border-radius:99px;background:var(--surface-3);overflow:hidden}
+.nt-bar i{display:block;height:100%;border-radius:99px;transition:width var(--med) var(--ease)}
+.nt-bar-big{height:10px;margin:12px 0 14px}
+.nt-macros{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.nt-macro-h{display:flex;justify-content:space-between;align-items:baseline;gap:4px;font-size:12px;white-space:nowrap;margin-bottom:5px;color:var(--label-2);font-variant-numeric:tabular-nums}
+.nt-macro-h b{color:var(--label);font-weight:600}
+.nt-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:6px 4px}
+.nt-empty p{color:var(--label-2);font-size:15px;line-height:1.4;max-width:30ch}
+.nt-today-eaten:empty{display:none}
+
+/* ---- meals ---- */
+.nt-meal{padding:12px 14px}
+.nt-meal-h{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:34px}
+.nt-meal-h b{font-size:17px;font-weight:600}
+.nt-add{color:var(--acc)}
+.nt-item,.nt-food,.nt-shop-row{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:start;
+  padding:10px 2px;border-top:var(--hair) solid var(--sep);color:var(--label)
+}
+.nt-item:active,.nt-food:active,.nt-shop-row:active{background:var(--surface-2)}
+.nt-food-m{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.nt-food-t{font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nt-food-s{font-size:13px;color:var(--label-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nt-food-k{flex:none;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;color:var(--label)}
+.nt-ai-ic{display:inline-block;font-size:12px;color:var(--purple);margin-inline-end:4px;vertical-align:-1px}
+
+.nt-planbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nt-planbar .btn{flex:none}
+.nt-ai-cta{background:linear-gradient(135deg,color-mix(in srgb,var(--purple) 16%,var(--surface)),var(--surface))}
+.nt-tdee{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:var(--hair) solid var(--sep)}
+.nt-tdee .btn{flex:none}
+.nt-actions{display:flex;flex-direction:column;gap:8px}
+
+/* ---- week strip ---- */
+.nt-days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;margin:-6px 0 12px}
+.nt-day{display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 0 7px;border-radius:var(--r);background:var(--surface);font-size:13px;font-weight:500;color:var(--label-2)}
+.nt-day i{width:5px;height:5px;border-radius:50%;background:transparent}
+.nt-day.has i{background:var(--acc)}
+.nt-day.on{background:var(--acc);color:var(--on-acc)}
+.nt-day.on i{background:transparent}
+.nt-day.on.has i{background:var(--on-acc)}
+
+/* ---- sheets ---- */
+.nt-meal-seg button span{font-size:13px}
+.nt-group{margin-bottom:10px}
+.nt-group-t{font-size:13px;font-weight:600;color:var(--label-2);text-transform:uppercase;margin:12px 2px 2px}
+[dir="rtl"] .nt-group-t{text-transform:none}
+.nt-group .nt-food:first-of-type{border-top:none}
+.nt-picked{background:var(--surface);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.nt-total-line{margin:12px 2px;font-size:15px;color:var(--label-2);font-variant-numeric:tabular-nums}
+.nt-total-line b{color:var(--label)}
+.nt-mfs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+.nt-mfs-3{grid-template-columns:repeat(3,1fr)}
+.nt-mfs-2{grid-template-columns:repeat(2,1fr)}
+.nt-mf{display:flex;flex-direction:column;gap:4px;min-width:0}
+.nt-mf>span:first-child{font-size:12px;color:var(--label-2);padding-inline-start:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nt-mf .num{width:100%;min-width:0;background:var(--surface);border:none;border-radius:var(--r-sm);padding:10px 8px;font-size:16px;font-weight:500;color:var(--label);outline:none;text-align:center}
+.nt-mf .num:focus{box-shadow:inset 0 0 0 2px var(--acc)}
+.nt-mf-wide .row .num{flex:1}
+.nt-label{font-size:13px;font-weight:600;color:var(--label-2);margin:14px 2px 6px}
+.nt-chips-wrap{flex-wrap:wrap;overflow:visible;touch-action:auto}
+.nt-switch-row{padding:12px 2px;font-size:16px}
+.nt-photo{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.nt-photo img{display:block;width:100%;max-height:240px;object-fit:cover}
+.nt-photo .iconbtn{position:absolute;top:8px;inset-inline-end:8px;background:rgba(0,0,0,.55);color:#fff;border-radius:50%}
+.nt-err,.nt-ok,.nt-note{padding:10px 12px;border-radius:var(--r-sm);font-size:14px;line-height:1.4;margin-bottom:10px}
+.nt-err{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red)}
+.nt-ok{background:color-mix(in srgb,var(--green) 14%,transparent);color:var(--green)}
+.nt-note{background:var(--surface);color:var(--label-2);display:flex;gap:6px;align-items:flex-start}
+.nt-note .icn{flex:none;margin-top:2px}
+.nt-ai-list{display:flex;flex-direction:column;gap:10px}
+.nt-ai-item{background:var(--surface);border-radius:var(--r);padding:10px}
+.nt-ai-item .field{background:var(--surface-2);padding:10px 12px;font-size:16px}
+.nt-ai-item .nt-mf .num{background:var(--surface-2)}
+.nt-preview{background:var(--surface);border-radius:var(--r);padding:14px;margin-top:12px}
+.nt-preview-k{font-size:28px;font-weight:700;letter-spacing:-.02em;margin:2px 0;font-variant-numeric:tabular-nums}
+.nt-preview-k span{font-size:14px;font-weight:500;color:var(--label-2)}
+.nt-review{background:var(--surface);border-radius:var(--r);padding:4px 14px}
+.nt-rv{display:flex;justify-content:space-between;gap:10px;padding:11px 0;border-top:var(--hair) solid var(--sep);font-size:15px}
+.nt-rv:first-child{border-top:none}
+.nt-rv span{color:var(--label-2)}
+.nt-rv b{font-weight:600;font-variant-numeric:tabular-nums;text-align:end}
+.nt-shop{background:var(--surface);border-radius:var(--r);padding:0 12px}
+.nt-shop-row:first-child{border-top:none}
+.nt-shop-row.on .nt-food-t{text-decoration:line-through;color:var(--label-3)}
+.nt-check{flex:none;width:22px;height:22px;border-radius:50%;border:1.6px solid var(--label-3);display:flex;align-items:center;justify-content:center;font-size:14px}
+.nt-shop-row.on .nt-check{background:var(--acc);border-color:var(--acc);color:var(--on-acc)}
+.nt-plan-preview{display:flex;flex-direction:column;gap:8px}
+.nt-pp-day{background:var(--surface);border-radius:var(--r);padding:10px 12px}
+.nt-pp-day .small.muted{margin-top:3px;line-height:1.4}
+
+/* ---- home card ---- */
+.nt-home{display:flex;align-items:center;gap:14px}
+.nt-home-ring{flex:none;width:58px;height:58px}
+.nt-home-ring circle{fill:none;stroke-width:6}
+.nt-home-ring .bg{stroke:var(--surface-3)}
+.nt-home-ring .fg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset var(--med) var(--ease)}
+.nt-home-m{flex:1;min-width:0}

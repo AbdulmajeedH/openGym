@@ -15,6 +15,9 @@ import { Button } from '../components/ui.jsx'
 import { tappable } from '../lib/use-sheet-keyboard.js'
 import { glyphOf } from '../lib/glyphs.js'
 import { dayNoteOf } from '../lib/day-notes.js'
+import { nState, dayItems, totals, dayTarget } from '../lib/nutrition.js'
+import { L, n0 } from '../lib/nutrition-i18n.js'
+import { isTrainingDay } from './Nutrition.jsx'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -103,7 +106,11 @@ export default function Home() {
   return <div className="narrow">
     <div className="hdr">
       <div><h1>{user ? t('Hi {0}', user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
-      <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
+      <div className="hdr-actions">
+        {/* the exercise library's tab went to Food; it lives here now, one tap from Home */}
+        <button className="iconbtn" onClick={() => nav('/library')} aria-label={t('Exercises')}><Icon name="dumbbell" /></button>
+        <button className="iconbtn" onClick={() => nav('/settings')} aria-label={trouble ? t('Settings') + ', ' + t('Connection problem') : t('Settings')}><Icon name="gear" />{trouble && <span className="tab-dot" aria-hidden="true" />}</button>
+      </div>
     </div>
 
     <div className="card">
@@ -187,6 +194,8 @@ export default function Home() {
       </div>
     )}
 
+    <NutritionCard S={S} onOpen={() => nav('/nutrition')} />
+
     {S.showWeightCard !== false && <div className="card">
       <div className="row between bw-head" style={{ marginBottom: 6 }}>
         <h2 style={{ margin: 0 }}>{t('Body weight')}</h2>
@@ -234,6 +243,31 @@ export default function Home() {
         </div>
         <Icon name="calendar" className="chev" style={{ fontSize: 20 }} />
       </div>
+    </div>
+  </div>
+}
+
+// Today's food at a glance: a ring for the calories, the protein beside it. Opens the food log.
+function NutritionCard({ S, onOpen }) {
+  const n = nState(S)
+  const today = todayISO()
+  const tot = totals(dayItems(n, today))
+  const target = dayTarget(n.goal, { training: isTrainingDay(S, today), bonus: n.profile.trainingBonus })
+  const R = 25, C = 2 * Math.PI * R
+  const frac = target ? Math.min(1, tot.kcal / target.kcal) : 0
+  return <div className="card tappable" style={{ cursor: 'pointer' }} {...tappable(onOpen)}>
+    <div className="nt-home">
+      <svg className="nt-home-ring" viewBox="0 0 58 58" aria-hidden="true">
+        <circle className="bg" cx="29" cy="29" r={R} />
+        <circle className="fg" cx="29" cy="29" r={R} strokeDasharray={C} strokeDashoffset={C * (1 - frac)} transform="rotate(-90 29 29)" />
+      </svg>
+      <div className="nt-home-m">
+        <h2 style={{ margin: 0 }}>{L('Food today', 'أكل اليوم')}</h2>
+        <div className="muted small" style={{ marginTop: 3 }}>{target
+          ? L('{0} of {1} kcal · protein {2}/{3} g', '{0} من {1} سعرة · بروتين {2}/{3} جم', n0(tot.kcal), n0(target.kcal), n0(tot.p), n0(target.p))
+          : tot.kcal ? L('{0} kcal logged', 'سجلت {0} سعرة', n0(tot.kcal)) : L('Log your meals and set a target', 'سجّل وجباتك وحدد هدفك')}</div>
+      </div>
+      <Icon name="chevronRight" className="chev" style={{ fontSize: 20 }} />
     </div>
   </div>
 }
