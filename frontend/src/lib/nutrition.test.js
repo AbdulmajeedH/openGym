@@ -3,7 +3,7 @@ import {
   nState, totals, cleanItem, bmr, formulaTdee, targetsFor, dayTarget, weightTrend, trendOn,
   adaptiveTdee, addDays, weekdayOf, shoppingList, recentItems, mealForHour, weeklyReview
 } from './nutrition.js'
-import { itemsFromMeal, planFromAnswer } from './food-ai.js'
+import { itemsFromMeal, planFromAnswer, inputFromResponse } from './food-ai.js'
 import { FOODS_SA, searchFoods, foodItem } from './foods-sa.js'
 
 const item = (k, qty = 1, extra = {}) => ({ name: 'x', qty, k, p: 10, c: 20, f: 5, ...extra })
@@ -189,5 +189,17 @@ describe('built-in foods', () => {
     expect(searchFoods(FOODS_SA, 'كبسة').length).toBeGreaterThan(1)
     expect(searchFoods(FOODS_SA, 'chicken kabsa')[0].id).toBe('kabsa-chicken')
     expect(foodItem(FOODS_SA[0], true)).toMatchObject({ name: 'كبسة دجاج', unit: 'صحن', qty: 1 })
+  })
+})
+
+describe('reading the model answer', () => {
+  it('takes the tool call when there is one', () => {
+    expect(inputFromResponse({ content: [{ type: 'text', text: 'ok' }, { type: 'tool_use', name: 'log_meal', input: { items: [] } }] }, 'log_meal')).toEqual({ items: [] })
+  })
+  it('falls back to JSON written as text, fenced or not', () => {
+    expect(inputFromResponse({ content: [{ type: 'text', text: 'Here:\n```json\n{"items":[{"name":"توست"}]}\n```' }] }, 'log_meal')).toEqual({ items: [{ name: 'توست' }] })
+  })
+  it('null when there is nothing usable', () => {
+    expect(inputFromResponse({ content: [{ type: 'text', text: 'sorry' }] }, 'log_meal')).toBeNull()
   })
 })

@@ -68,13 +68,27 @@ async function callTool({ model, system, content, tool, maxTokens = 2000 }) {
     system: [{ type: 'text', text: system, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content }],
     tools: [tool],
-    tool_choice: { type: 'tool', name: tool.name }
+    // 'auto', not a forced tool: some models reject tool_choice "tool"/"any" outright. The system
+    // prompt asks for the tool, and a plain-JSON answer is read as a fallback (inputFromResponse).
+    tool_choice: { type: 'auto' }
   }
+  body.system[0].text += `\n\nAlways answer by calling the ${tool.name} tool exactly once. Do not write any other text.`
   const data = await request('/v1/messages', { method: 'POST', body: JSON.stringify(body) }, key)
   if (data?.stop_reason === 'refusal') throw new FoodAiError('refusal')
-  const block = (data?.content || []).find(b => b?.type === 'tool_use' && b.name === tool.name)
-  if (!block || !block.input) throw new FoodAiError('format', 'no structured answer')
-  return block.input
+  const input = inputFromResponse(data, tool.name)
+  if (!input) throw new FoodAiError('format', 'no structured answer')
+  return input
+}
+
+/** The tool call's input, or a JSON object written as text instead of a tool call. Exported for tests. */
+export function inputFromResponse(data, name) {
+  const blocks = Array.isArray(data?.content) ? data.content : []
+  const call = blocks.find(b => b?.type === 'tool_use' && b.name === name && b.input && typeof b.input === 'object')
+  if (call) return call.input
+  const text = blocks.filter(b => b?.type === 'text').map(b => b.text || '').join('\n')
+  const start = text.indexOf('{'), end = text.lastIndexOf('}')
+  if (start === -1 || end <= start) return null
+  try { const v = JSON.parse(text.slice(start, end + 1)); return v && typeof v === 'object' ? v : null } catch { return null }
 }
 
 /* ------------------------------------------------------------ meal estimate -- */
