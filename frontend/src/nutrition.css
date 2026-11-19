@@ -112,3 +112,12 @@
 .nt-home-ring .bg{stroke:var(--surface-3)}
 .nt-home-ring .fg{stroke:var(--acc);stroke-linecap:round;transition:stroke-dashoffset var(--med) var(--ease)}
 .nt-home-m{flex:1;min-width:0}
+
+/* ---- targets sheet: rest day beside training day ---- */
+.nt-daytypes{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.nt-daytypes .nt-preview-k{font-size:24px}
+.nt-daytypes>div+div{border-inline-start:var(--hair) solid var(--sep);padding-inline-start:12px}
+.nt-badge-plus{opacity:.8;font-weight:500}
+.nt-fix{display:flex;align-items:flex-start;gap:8px;width:100%;text-align:start;margin-top:12px;padding:10px 12px;border-radius:var(--r-sm);
+  background:color-mix(in srgb,var(--orange) 14%,transparent);color:var(--orange);font-size:14px;line-height:1.4}
+.nt-fix .icn{flex:none;margin-top:2px}

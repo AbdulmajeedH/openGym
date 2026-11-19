@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore.js'
 import {
   MEALS, nState, ensureN, dayItems, mealItems, totals, itemKcal, dayTarget, addDays, weekdayOf,
-  planDayItems, mealForHour, weightTrend, adaptiveTdee
+  planDayItems, mealForHour, weightTrend, adaptiveTdee, goalMismatch
 } from '../lib/nutrition.js'
 import { effectiveRoutines } from '../lib/history.js'
 import { L, n0, n1, MEAL_LABEL, DAY_LABEL } from '../lib/nutrition-i18n.js'
@@ -72,6 +72,7 @@ export default function Nutrition() {
   const tot = totals(items)
   const training = isTrainingDay(S, date)
   const target = dayTarget(n.goal, { training, bonus: n.profile.trainingBonus })
+  const mismatch = goalMismatch(n.goal)
   const logTarget = { kind: 'log', date }
   const planned = planDayItems(n, weekdayOf(date))
 
@@ -124,7 +125,7 @@ export default function Nutrition() {
           </div>
           <div className="nt-eaten">
             <div><b>{n0(tot.kcal)}</b> <span className="muted">/ {n0(target.kcal)}</span></div>
-            {target.training && <div className="nt-badge"><Icon name="dumbbell" /> {L('Training day', 'يوم تمرين')}</div>}
+            {target.training && <button className="nt-badge" onClick={targetsSheet}><Icon name="dumbbell" /> {L('Training day', 'يوم تمرين')} <span className="nt-badge-plus" dir="ltr">+{n0(target.bonus)}</span></button>}
           </div>
         </div>
         <div className="nt-bar nt-bar-big"><i style={{ width: pct + '%', background: over ? 'var(--orange)' : 'var(--acc)' }} /></div>
@@ -133,6 +134,12 @@ export default function Nutrition() {
           <MacroBar label={L('Carbs', 'كارب')} value={tot.c} target={target.c} color="var(--blue)" />
           <MacroBar label={L('Fat', 'دهون')} value={tot.f} target={target.f} color="var(--yellow)" />
         </div>
+        {/* A goal saved before the targets sheet kept calories and macros together can still
+            disagree (lib/nutrition.js balanceGoal). Opening the sheet settles it on the macros. */}
+        {mismatch != null && <button className="nt-fix" onClick={targetsSheet}>
+          <Icon name="info" />
+          <span>{L('Your macros add up to {0} kcal, not {1}. Tap to fix your targets.', 'ماكروزك مجموعها {0} سعرة مو {1}. اضغط هنا وعدّل أهدافك.', n0(mismatch), n0(n.goal.kcal))}</span>
+        </button>}
       </> : <div className="nt-empty">
         <Icon name="target" style={{ fontSize: 28, color: 'var(--orange)' }} />
         <p>{L('Set your daily calorie and protein targets to start.', 'حدد هدفك اليومي من السعرات والبروتين عشان تبدأ.')}</p>
