@@ -18,6 +18,9 @@ import { dayNoteOf } from '../lib/day-notes.js'
 import { nState, dayItems, totals, dayTarget } from '../lib/nutrition.js'
 import { L, n0 } from '../lib/nutrition-i18n.js'
 import { isTrainingDay } from './Nutrition.jsx'
+import { greetingText, greetingPart, displayNameOf } from '../lib/motivation.js'
+import { nameSheet } from '../components/Motivation.jsx'
+import '../motivation.css'
 
 // Home = what to do now + a quick glance. Deep charts & history live in Stats.
 export default function Home() {
@@ -29,6 +32,7 @@ export default function Home() {
   const [weekOffset, setWeekOffset] = useState(0)
 
   const today = new Date()
+  const name = displayNameOf(S, user)
   // A weekday can hold several routines. `todayRoutines` is the whole day; `routine` is the
   // first, kept for the one-routine glyph. The derived session name joins them (§9).
   const todayRoutines = effectiveRoutines(S, todayISO())
@@ -105,7 +109,16 @@ export default function Home() {
 
   return <div className="narrow">
     <div className="hdr">
-      <div><h1>{user ? t('Hi {0}', user.name) : 'openGym'}</h1><div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div></div>
+      {/* "صباح الخير" / "مساء الخير" over the name (Look & Home → Your name); tapping either changes it. */}
+      <div {...tappable(nameSheet)} style={{ cursor: 'pointer' }}>
+        <div className="hi-line">
+          <Icon name={greetingPart(today.getHours()) === 'morning' ? 'sun' : 'moon'} style={{ color: greetingPart(today.getHours()) === 'morning' ? 'var(--yellow)' : 'var(--indigo)' }} />
+          <span>{greetingText(today.getHours())}</span>
+        </div>
+        <h1>{name || (user ? t('Hi {0}', user.name) : 'openGym')}</h1>
+        <div className="sub">{today.toLocaleDateString(dateLocale(), { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        {!name && <span className="hi-name"><Icon name="plus" /> {L('Add your name', 'أضف اسمك')}</span>}
+      </div>
       <div className="hdr-actions">
         {/* the exercise library's tab went to Food; it lives here now, one tap from Home */}
         <button className="iconbtn" onClick={() => nav('/library')} aria-label={t('Exercises')}><Icon name="dumbbell" /></button>

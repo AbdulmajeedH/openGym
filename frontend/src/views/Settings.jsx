@@ -44,6 +44,8 @@ import { ServerSyncSection, KeptChangesRows, leaveServer, connectServer, passkey
 import { passwordOn, PasswordRow, openPasswordSignIn, openPasswordRegister } from '../components/PasswordAuth.jsx'
 import { usePasskeys, PasskeysRow, DeviceLinkRow, openDeviceLinkRedeem } from '../components/Passkeys.jsx'
 import { Section, Row, SelectRow, Switch, Segmented, Button, TextField, SearchField } from '../components/ui.jsx'
+import { L } from '../lib/nutrition-i18n.js'
+import { nameSheet } from '../components/Motivation.jsx'
 import { PAGES, ROOT_GROUPS, pageVisible, searchSettings, pageTrail } from './settings-pages.js'
 
 /* Settings (v1.3.11). The root is one screen: an account card, eleven rows that each open a page
@@ -752,6 +754,14 @@ export default function Settings({ page = null, find = null, via = null }) {
         </Row>
       </Section>
       <Section title={t('On Home')}>
+        {/* The greeting over Home ("صباح الخير", then the name) and the message the app opens
+            with (components/Motivation.jsx). English and Arabic only, like the food screens. */}
+        <Row icon="personCircle" iconTint="var(--orange)" title={L('Your name', 'اسمك')} value={S.displayName || L('Not set', 'غير محدد')}
+          accessory="chevron" onClick={nameSheet} />
+        <Row icon="sparkles" iconTint="var(--pink)" title={L('Encouraging messages', 'رسائل تشجيعية')}
+          subtitle={L('A short message each time you open the app.', 'رسالة قصيرة تطلع لك كل ما تفتح التطبيق.')}>
+          <Switch checked={S.motivation !== false} onChange={v => update(s => { s.motivation = v })} />
+        </Row>
         {/* Membership QR codes on Home (views/CheckIn.jsx); off = no Home card, no route. */}
         <Row icon="qr" iconTint="var(--blue)" title={t('Gym check-in')}
           subtitle={t('Show a card on Home with your membership QR codes.')}>

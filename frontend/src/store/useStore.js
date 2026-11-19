@@ -199,6 +199,12 @@ export const DEF = {
   // entries, Stats, imports and the separate pre-workout weigh-in flow keep working.
   // Defaults on; an older profile without the key reads as on (`!== false`).
   showWeightCard: true,
+  // The name Home greets you by ("صباح الخير" over it) and the encouraging messages use; '' greets
+  // without one (a signed-in account's own name is used then). components/Motivation.jsx.
+  displayName: '',
+  // The encouraging message that pops up when the app is opened. Defaults on; an older profile
+  // without the key reads as on (`!== false`).
+  motivation: true,
   // Whether Start opens the quick weigh-in first (sheets.jsx startFlow, issue #137). Off starts
   // the session straight away; weight can still be logged from Home/Stats. On here, so an
   // older profile without the key reads as on (`!== false`) and keeps the step it had; a profile
