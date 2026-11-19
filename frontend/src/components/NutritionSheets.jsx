@@ -5,7 +5,7 @@ import { useStore } from '../store/useStore.js'
 import { useUI } from '../store/useUI.js'
 import {
   MEALS, ACTIVITY, GOAL_RATES, nState, ensureN, totals, itemKcal, recentItems, cleanItem,
-  formulaTdee, targetsFor, latestKg, weeklyReview, shoppingList, fromKg
+  formulaTdee, targetsFor, latestKg, weeklyReview, shoppingList, fromKg, balanceGoal, macroKcal, dayTarget
 } from '../lib/nutrition.js'
 import { FOODS_SA, foodItem, searchFoods } from '../lib/foods-sa.js'
 import {
@@ -319,16 +319,25 @@ function Targets({ close }) {
   const unit = S.unit || 'kg'
   const [p, setP] = useState(n.profile)
   const [w, setW] = useState(() => { const kg = latestKg(S.bodyweight, unit); return kg ? Math.round(fromKg(kg, unit) * 10) / 10 : null })
-  const [manual, setManual] = useState(false)
-  const [g, setG] = useState(n.goal || { kcal: 2000, p: 150, c: 200, f: 60 })
   const weightKg = w ? (unit === 'lb' ? w * 0.45359237 : w) : null
   const tdee = weightKg ? formulaTdee(p, weightKg) : null
   const auto = tdee ? targetsFor({ tdee, rateKgWk: p.rateKgWk, weightKg, proteinPerKg: p.proteinPerKg }) : null
+  // Numbers typed in by hand open as typed in by hand. The choice used to be forgotten, so the
+  // sheet reopened on the calculator and Save put its numbers over the user's own. A goal saved
+  // before the choice was remembered counts as typed in when the calculator would not give it.
+  const [manual, setManual] = useState(() => n.profile.manual ?? (!!n.goal && !(auto && auto.kcal === n.goal.kcal && auto.p === n.goal.p)))
+  // Kept adding up (balanceGoal): a goal saved with macros that disagree opens settled on them.
+  const [g, setG] = useState(() => balanceGoal(n.goal || auto || { kcal: 2000, p: 150, c: 200, f: 60 }))
   const setGoalType = goalType => setP({ ...p, goalType, rateKgWk: GOAL_RATES[goalType] })
+  const pickMode = v => {
+    if (v === 'manual' && !manual && !n.goal && auto) setG(auto)
+    setManual(v === 'manual')
+  }
+  const base = manual ? balanceGoal(g) : auto
+  const bonus = Number(p.trainingBonus) > 0 ? Number(p.trainingBonus) : 0
   const save = () => {
-    const goal = manual ? g : auto
-    if (!goal || !(goal.kcal > 0)) { toast(L('Fill in your weight, height and age.', 'عبّ الوزن والطول والعمر.')); return }
-    update(S => { const n = ensureN(S); n.profile = p; n.goal = { kcal: goal.kcal, p: goal.p, c: goal.c, f: goal.f } })
+    if (!base || !(base.kcal > 0)) { toast(manual ? L('Fill in your calories or macros.', 'عبّ السعرات أو الماكروز.') : L('Fill in your weight, height and age.', 'عبّ الوزن والطول والعمر.')); return }
+    update(S => { const n = ensureN(S); n.profile = { ...p, trainingBonus: bonus, manual }; n.goal = { kcal: base.kcal, p: base.p, c: base.c, f: base.f } })
     toast(L('Targets saved', 'انحفظت الأهداف'))
     close()
   }
@@ -337,47 +346,90 @@ function Targets({ close }) {
     <span className="row" style={{ gap: 6 }}><NumberField value={value} onChange={onChange} />{suffix && <span className="muted small">{suffix}</span>}</span>
   </label>
   const rates = p.goalType === 'cut' ? [-0.25, -0.5, -0.75, -1] : p.goalType === 'bulk' ? [0.1, 0.25, 0.5] : [0]
+  const editGoal = patch => {
+    const key = 'k' in patch ? 'kcal' : Object.keys(patch)[0]
+    const value = 'k' in patch ? patch.k : patch[key]
+    setG(cur => balanceGoal({ ...cur, [key]: value }, key))
+  }
+  // Protein and fat alone make more than the calories typed: carbs are at zero and Save will
+  // keep what the macros make.
+  const short = manual && g.kcal > 0 && macroKcal(g) > g.kcal + 15
   return <>
     <h3>{L('Daily targets', 'أهدافك اليومية')}</h3>
-    <Segmented value={p.sex} onChange={sex => setP({ ...p, sex })} options={[{ value: 'male', label: L('Male', 'ذكر') }, { value: 'female', label: L('Female', 'أنثى') }]} />
-    <div className="nt-mfs nt-mfs-3">
-      {num(L('Age', 'العمر'), p.age, age => setP({ ...p, age }))}
-      {num(L('Height', 'الطول'), p.heightCm, heightCm => setP({ ...p, heightCm }), L('cm', 'سم'))}
-      {num(L('Weight', 'الوزن'), w, setW, unit === 'lb' ? 'lb' : L('kg', 'كجم'))}
-    </div>
-    <div className="nt-label">{L('Activity outside the gym', 'نشاطك اليومي خارج النادي')}</div>
-    <div className="chips nt-chips-wrap">
-      {Object.keys(ACTIVITY).map(a => <button key={a} className={'chip' + (p.activity === a ? ' on' : '')} onClick={() => setP({ ...p, activity: a })}>{{
-        sedentary: L('Desk', 'مكتبي'), light: L('Light', 'خفيف'), moderate: L('Moderate', 'متوسط'), active: L('Active', 'نشيط'), very: L('Very active', 'نشيط جداً')
-      }[a]}</button>)}
-    </div>
-    <div className="nt-label">{L('Goal', 'الهدف')}</div>
-    <Segmented value={p.goalType} onChange={setGoalType} options={[
-      { value: 'cut', label: L('Lose fat', 'تنشيف') }, { value: 'maintain', label: L('Maintain', 'ثبات') }, { value: 'bulk', label: L('Build', 'تضخيم') }
+    <Segmented value={manual ? 'manual' : 'auto'} onChange={pickMode} options={[
+      { value: 'auto', label: L('Calculate for me', 'احسبها لي') }, { value: 'manual', label: L('My own numbers', 'أرقامي بنفسي') }
     ]} />
-    {rates.length > 1 && <div className="chips nt-chips-wrap" style={{ marginTop: 8 }}>
-      {rates.map(r => <button key={r} className={'chip' + (p.rateKgWk === r ? ' on' : '')} onClick={() => setP({ ...p, rateKgWk: r })}>{r > 0 ? '+' : ''}{r} {L('kg/week', 'كجم/أسبوع')}</button>)}
-    </div>}
+
+    {manual ? <>
+      <MacroFields item={{ k: g.kcal, p: g.p, c: g.c, f: g.f }} onChange={editGoal} />
+      <div className="small muted" style={{ margin: '8px 2px 0', lineHeight: 1.4 }}>{L(
+        'Calories follow your macros (4 kcal per gram of protein and carbs, 9 per gram of fat). Change the calories and the carbs adjust.',
+        'السعرات تنحسب من الماكروز تلقائياً (٤ سعرات لكل جرام بروتين أو كارب، و٩ لكل جرام دهون). وإذا غيّرت السعرات يتعدّل الكارب.'
+      )}</div>
+      {short && <div className="nt-err" style={{ marginTop: 8, marginBottom: 0 }}>{L(
+        'Protein and fat alone make {0} kcal, so that is what will be saved.',
+        'البروتين والدهون لحالهم يعطون {0} سعرة، فبتنحفظ {0}.', n0(macroKcal(g)))}</div>}
+    </> : <>
+      <div style={{ height: 10 }} />
+      <Segmented value={p.sex} onChange={sex => setP({ ...p, sex })} options={[{ value: 'male', label: L('Male', 'ذكر') }, { value: 'female', label: L('Female', 'أنثى') }]} />
+      <div className="nt-mfs nt-mfs-3">
+        {num(L('Age', 'العمر'), p.age, age => setP({ ...p, age }))}
+        {num(L('Height', 'الطول'), p.heightCm, heightCm => setP({ ...p, heightCm }), L('cm', 'سم'))}
+        {num(L('Weight', 'الوزن'), w, setW, unit === 'lb' ? 'lb' : L('kg', 'كجم'))}
+      </div>
+      <div className="nt-label">{L('Activity outside the gym', 'نشاطك اليومي خارج النادي')}</div>
+      <div className="chips nt-chips-wrap">
+        {Object.keys(ACTIVITY).map(a => <button key={a} className={'chip' + (p.activity === a ? ' on' : '')} onClick={() => setP({ ...p, activity: a })}>{{
+          sedentary: L('Desk', 'مكتبي'), light: L('Light', 'خفيف'), moderate: L('Moderate', 'متوسط'), active: L('Active', 'نشيط'), very: L('Very active', 'نشيط جداً')
+        }[a]}</button>)}
+      </div>
+      <div className="nt-label">{L('Goal', 'الهدف')}</div>
+      <Segmented value={p.goalType} onChange={setGoalType} options={[
+        { value: 'cut', label: L('Lose fat', 'تنشيف') }, { value: 'maintain', label: L('Maintain', 'ثبات') }, { value: 'bulk', label: L('Build', 'تضخيم') }
+      ]} />
+      {rates.length > 1 && <div className="chips nt-chips-wrap" style={{ marginTop: 8 }}>
+        {rates.map(r => <button key={r} className={'chip' + (p.rateKgWk === r ? ' on' : '')} onClick={() => setP({ ...p, rateKgWk: r })}>{r > 0 ? '+' : ''}{r} {L('kg/week', 'كجم/أسبوع')}</button>)}
+      </div>}
+    </>}
+
     <div className="nt-mfs nt-mfs-2">
-      {num(L('Protein per kg', 'بروتين لكل كيلو'), p.proteinPerKg, proteinPerKg => setP({ ...p, proteinPerKg }), L('g', 'جم'))}
+      {!manual && num(L('Protein per kg', 'بروتين لكل كيلو'), p.proteinPerKg, proteinPerKg => setP({ ...p, proteinPerKg }), L('g', 'جم'))}
       {num(L('Extra on training days', 'زيادة أيام التمرين'), p.trainingBonus, trainingBonus => setP({ ...p, trainingBonus }), L('kcal', 'سعرة'))}
     </div>
+    <div className="small muted" style={{ margin: '6px 2px 0', lineHeight: 1.4 }}>{bonus
+      ? L('Added as carbs on days your plan has a workout. Set 0 to keep the same numbers every day.', 'تنضاف كارب في الأيام اللي فيها تمرين بخطتك. حط 0 إذا تبي نفس الأرقام كل يوم.')
+      : L('The same numbers every day.', 'نفس الأرقام كل يوم.')}</div>
 
-    {!manual && auto && <div className="nt-preview">
-      <div className="small muted">{L('Estimated expenditure: {0} kcal', 'احتياجك التقديري: {0} سعرة', n0(tdee))}</div>
-      <div className="nt-preview-k">{n0(auto.kcal)} <span>{L('kcal / day', 'سعرة / يوم')}</span></div>
-      <div className="small">{L('Protein', 'بروتين')} {auto.p} · {L('Carbs', 'كارب')} {auto.c} · {L('Fat', 'دهون')} {auto.f} {L('g', 'جم')}</div>
-    </div>}
-    <div className="row between nt-switch-row">
-      <span>{L('Set the numbers myself', 'أحدد الأرقام بنفسي')}</span>
-      <Switch checked={manual} onChange={setManual} />
-    </div>
-    {manual && <MacroFields item={{ k: g.kcal, p: g.p, c: g.c, f: g.f }} onChange={patch => setG({ ...g, ...('k' in patch ? { kcal: patch.k } : patch) })} />}
-    <div style={{ height: 10 }} />
+    {base && base.kcal > 0 && <TargetPreview base={base} bonus={bonus} tdee={manual ? null : tdee} />}
+    <div style={{ height: 12 }} />
     <Button variant="primary" onClick={save}>{L('Save targets', 'احفظ الأهداف')}</Button>
     <div style={{ height: 6 }} />
     <Button variant="ghost" className="dim" onClick={close}>{L('Cancel', 'إلغاء')}</Button>
   </>
+}
+
+/** What the day screen will measure against: a rest day, and a training day with the bonus on top. */
+function TargetPreview({ base, bonus, tdee }) {
+  const train = dayTarget(base, { training: true, bonus })
+  const macros = t => <div className="small">{L('Protein', 'بروتين')} {n0(t.p)} · {L('Carbs', 'كارب')} {n0(t.c)} · {L('Fat', 'دهون')} {n0(t.f)} {L('g', 'جم')}</div>
+  return <div className="nt-preview">
+    {tdee ? <div className="small muted">{L('Estimated expenditure: {0} kcal', 'احتياجك التقديري: {0} سعرة', n0(tdee))}</div> : null}
+    {train.training ? <div className="nt-daytypes">
+      <div>
+        <div className="small muted">{L('Rest day', 'يوم راحة')}</div>
+        <div className="nt-preview-k">{n0(base.kcal)} <span>{L('kcal', 'سعرة')}</span></div>
+        {macros(base)}
+      </div>
+      <div>
+        <div className="small muted">{L('Training day', 'يوم تمرين')} <span style={{ color: 'var(--acc)' }} dir="ltr">+{n0(bonus)}</span></div>
+        <div className="nt-preview-k">{n0(train.kcal)} <span>{L('kcal', 'سعرة')}</span></div>
+        {macros(train)}
+      </div>
+    </div> : <>
+      <div className="nt-preview-k">{n0(base.kcal)} <span>{L('kcal / day', 'سعرة / يوم')}</span></div>
+      {macros(base)}
+    </>}
+  </div>
 }
 
 /* ---------------------------------------------------------- Claude settings -- */
@@ -453,7 +505,8 @@ function CheckInReview({ close }) {
   const r = weeklyReview(S, todayISO())
   const unit = S.unit === 'lb' ? 'lb' : L('kg', 'كجم')
   const apply = () => {
-    update(S => { ensureN(S).goal = { ...r.suggested } })
+    // The suggestion is the calculator's, so the targets sheet opens on the calculator again.
+    update(S => { const n = ensureN(S); n.goal = { ...r.suggested }; n.profile = { ...n.profile, manual: false } })
     toast(L('New targets applied', 'تم تطبيق الأهداف الجديدة'))
     close()
   }

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  nState, totals, cleanItem, bmr, formulaTdee, targetsFor, dayTarget, weightTrend, trendOn,
+  nState, totals, cleanItem, bmr, formulaTdee, targetsFor, dayTarget, macroKcal, balanceGoal, goalMismatch, weightTrend, trendOn,
   adaptiveTdee, addDays, weekdayOf, shoppingList, recentItems, mealForHour, weeklyReview
 } from './nutrition.js'
 import { itemsFromMeal, planFromAnswer, inputFromResponse } from './food-ai.js'
@@ -52,6 +52,51 @@ describe('targets', () => {
     const g = { kcal: 2000, p: 150, c: 200, f: 55 }
     expect(dayTarget(g, { training: true, bonus: 200 })).toMatchObject({ kcal: 2200, c: 250, training: true })
     expect(dayTarget(g, { training: false, bonus: 200 })).toMatchObject({ kcal: 2000, c: 200, training: false })
+  })
+  it('a training day says how much it added, so the screen can show it', () => {
+    const g = { kcal: 2000, p: 150, c: 200, f: 55 }
+    expect(dayTarget(g, { training: true, bonus: 150 }).bonus).toBe(150)
+    expect(dayTarget(g, { training: false, bonus: 150 }).bonus).toBe(0)
+    expect(dayTarget(g, { training: true, bonus: 0 })).toMatchObject({ kcal: 2000, training: false, bonus: 0 })
+  })
+})
+
+describe('targets typed in by hand', () => {
+  it('macros make 4/4/9 kcal per gram', () => {
+    expect(macroKcal({ p: 100, c: 135, f: 45 })).toBe(1345)
+    expect(macroKcal({})).toBe(0)
+  })
+  it('changing a macro moves the calories to what the macros make', () => {
+    // The reported case: the auto goal (1,200 kcal) with protein, carbs and fat typed over it.
+    // The calories stayed at 1,200 while the macros made 1,345.
+    let g = { kcal: 1200, p: 124, c: 102, f: 33 }
+    g = balanceGoal({ ...g, p: 100 }, 'p')
+    g = balanceGoal({ ...g, c: 135 }, 'c')
+    g = balanceGoal({ ...g, f: 45 }, 'f')
+    expect(g).toEqual({ kcal: 1345, p: 100, c: 135, f: 45 })
+  })
+  it('changing the calories moves the carbs, protein and fat stay', () => {
+    expect(balanceGoal({ kcal: 1500, p: 100, c: 135, f: 45 }, 'kcal')).toEqual({ kcal: 1500, p: 100, c: 174, f: 45 })
+  })
+  it('calories below what protein and fat make leave carbs at zero, and saving settles on the macros', () => {
+    const typing = balanceGoal({ kcal: 1, p: 100, c: 135, f: 45 }, 'kcal')
+    expect(typing).toEqual({ kcal: 1, p: 100, c: 0, f: 45 })   // the field keeps what is being typed
+    expect(balanceGoal(typing)).toEqual({ kcal: 805, p: 100, c: 0, f: 45 })
+  })
+  it('saving leaves a goal that already adds up alone, rounding included', () => {
+    const auto = targetsFor({ tdee: 1400, rateKgWk: -0.5, weightKg: 62, proteinPerKg: 2 })
+    expect(balanceGoal(auto)).toEqual(auto)
+    expect(goalMismatch(auto)).toBeNull()
+  })
+  it('a goal saved with macros that disagree with its calories is caught', () => {
+    expect(goalMismatch({ kcal: 1200, p: 100, c: 135, f: 45 })).toBe(1345)
+    expect(goalMismatch(null)).toBeNull()
+    expect(goalMismatch({ kcal: 1500, p: 0, c: 0, f: 0 })).toBeNull()   // calories only: nothing to compare
+  })
+  it('a balanced goal plus the training bonus still adds up', () => {
+    const g = balanceGoal({ kcal: 1200, p: 100, c: 135, f: 45 })
+    const t = dayTarget(g, { training: true, bonus: 150 })
+    expect(Math.abs(macroKcal(t) - t.kcal)).toBeLessThanOrEqual(2)
   })
 })
 

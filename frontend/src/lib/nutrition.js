@@ -4,7 +4,8 @@
 // (a target, an estimated expenditure, a shopping total) lives here with a test beside it.
 //
 // The state lives in S.nutrition (null until first used; nState() fills the defaults):
-//   profile  { sex, age, heightCm, activity, goalType, rateKgWk, proteinPerKg, trainingBonus }
+//   profile  { sex, age, heightCm, activity, goalType, rateKgWk, proteinPerKg, trainingBonus, manual }
+//            manual: the goal was typed in by hand (the targets sheet reopens that way)
 //   goal     { kcal, p, c, f } | null        — the target the day screen measures against
 //   log      { 'YYYY-MM-DD': Item[] }        — what was eaten, per day
 //   foods    Food[]                          — the user's own saved foods
@@ -161,8 +162,42 @@ export function targetsFor({ tdee, rateKgWk = 0, weightKg, proteinPerKg = 2, flo
 /** The day's target: the goal, plus the training-day bonus (all of it carbs) on a training day. */
 export function dayTarget(goal, { training = false, bonus = 0 } = {}) {
   if (!goal) return null
-  if (!training || !(bonus > 0)) return { ...goal, training: false }
-  return { ...goal, kcal: goal.kcal + bonus, c: goal.c + Math.round(bonus / 4), training: true }
+  if (!training || !(bonus > 0)) return { ...goal, training: false, bonus: 0 }
+  return { ...goal, kcal: goal.kcal + bonus, c: goal.c + Math.round(bonus / 4), training: true, bonus }
+}
+
+/** The calories a set of macros makes: 4 per gram of protein and of carbs, 9 per gram of fat. */
+export const macroKcal = ({ p, c, f } = {}) => Math.round(num(p) * 4 + num(c) * 4 + num(f) * 9)
+
+/**
+ * A goal typed in by hand, kept adding up. Calories and macros used to be four separate fields:
+ * changing the macros left the calories where they were, so a goal of 1,200 kcal could hold
+ * macros worth 1,345, and on a training day the bonus went on top of that mismatch (the screen
+ * said 1,350 kcal over macros worth 1,497).
+ *
+ * `changed` is the field just edited. A macro moves the calories to what the macros make. The
+ * calories move the carbs to fill the difference, protein and fat staying as set (carbs never
+ * below zero; the calories stay as typed so the field can be typed into). With no `changed`, the
+ * goal is settled for saving: calories that the macros no longer make (more than rounding
+ * apart) become what the macros make.
+ */
+export function balanceGoal(g, changed) {
+  const goal = { kcal: num(g?.kcal), p: num(g?.p), c: num(g?.c), f: num(g?.f) }
+  if (changed === 'p' || changed === 'c' || changed === 'f') return { ...goal, kcal: macroKcal(goal) }
+  if (changed === 'kcal') return { ...goal, c: Math.max(0, Math.round((goal.kcal - goal.p * 4 - goal.f * 9) / 4)) }
+  return goalMismatch(goal) == null ? goal : { ...goal, kcal: macroKcal(goal) }
+}
+
+/**
+ * The calories a goal's macros make when they disagree with its calories by more than rounding
+ * (a goal saved before balanceGoal existed); null when they agree. `slack` covers the rounding
+ * of three macros to whole grams.
+ */
+export function goalMismatch(goal, slack = 15) {
+  if (!goal || !(goal.kcal > 0)) return null
+  const fromMacros = macroKcal(goal)
+  if (!(fromMacros > 0)) return null
+  return Math.abs(fromMacros - goal.kcal) > slack ? fromMacros : null
 }
 
 /* --------------------------------------------------------- weight trend -- */
